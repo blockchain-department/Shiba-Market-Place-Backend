@@ -3,21 +3,28 @@ const dotenv = require('dotenv');
 const app = express();
 const connectDB = require("./db/connect");
 const bodyParser = require('body-parser');
+const nft_Route = require('./routes/nftmetadata')
+const list_Route = require('./routes/listnft')
+const errorHandler = require('./middleware/errorHandler');
 var cors = require('cors')
 const corsOptions = {
-    origin: 'http://localhost:3000',
+    origin: "*",
     credentials: true,            //access-control-allow-credentials:true
     optionSuccessStatus: 200
 }
 app.use(cors(corsOptions));
-app.use(bodyParser.json());
-
-const PORT = process.env.PORT || 8080;
 dotenv.config();
+app.use(bodyParser.json());
+app.use(errorHandler);
 
-app.get("/", (req, res) => {
-    res.send("Hi,I am live");
-});
+const PORT = process.env.PORT || 5000;
+
+app.use('/api', nft_Route);
+app.use('/api', list_Route),
+
+    app.get("/", (req, res) => {
+        res.send("Hi,I am live");
+    });
 
 
 const Start = async () => {
