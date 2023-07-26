@@ -8,7 +8,7 @@ const asyncHandler = require("express-async-handler");
 const listNft = asyncHandler(
     async (req, res) => {
 
-        const { tokenId } = req.body;
+        const { tokenId, listPrice } = req.body;
 
         // Find the NFT record that matches the nftId
         const nftRecord = await Nft.findOne({ tokenId });
@@ -22,7 +22,8 @@ const listNft = asyncHandler(
         // Create a new record in the listnft table
         const newListNft = new ListNft({
             nft_id: nftRecord.id, // Associate the Nft object ID with the listnft record
-            token_id: nftRecord.tokenId, // Copy the token_id from the Nft record (if needed)
+            token_id: nftRecord.tokenId,
+            price: listPrice // Copy the token_id from the Nft record (if needed)
         });
 
         // Save the newListNft record to the database
@@ -48,4 +49,25 @@ const getAllListedNfts = asyncHandler(async (req, res) => {
     res.status(200).json(Nfts);
 });
 
-module.exports = { listNft, getAllListedNfts };
+const unlistNft = asyncHandler(async (req, res) => {
+    try {
+        const { token_id } = req.body;
+
+        // Find the listed NFT record that matches the token_id
+        const nft = await ListNft.findOne({ token_id });
+
+        if (!nft) {
+            res.status(404);
+            throw new Error("Product not found");
+        }
+
+        // Delete the found nft record from the database
+        await ListNft.deleteOne({ token_id });
+        res.status(200).send({ message: "Deleted" });
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
+
+module.exports = { listNft, getAllListedNfts, unlistNft };

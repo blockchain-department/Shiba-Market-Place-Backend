@@ -9,6 +9,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please enter tokenid"]
     },
+    price: {
+        type: Number,
+        required: [true, "Please enter nftPrice"]
+    }
 })
 
 module.exports = mongoose.model("ListNft", productSchema);
