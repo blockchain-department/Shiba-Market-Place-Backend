@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { listNft, getAllListedNfts } = require("./../controllers/listnft")
+const { listNft, getAllListedNfts, unlistNft } = require("./../controllers/listnft")
 
 router.route("/listnft").post(listNft);
 router.route("/allListedNfts").get(getAllListedNfts);
-module.exports = router;
+router.route("/unlistnft").post(unlistNft)
+module.exports = router;    
