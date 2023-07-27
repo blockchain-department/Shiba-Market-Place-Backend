@@ -58,7 +58,7 @@ const unlistNft = asyncHandler(async (req, res) => {
 
         if (!nft) {
             res.status(404);
-            throw new Error("Product not found");
+            throw new Error("Nft not found");
         }
 
         // Delete the found nft record from the database
@@ -69,5 +69,25 @@ const unlistNft = asyncHandler(async (req, res) => {
     }
 });
 
+const updateNftPrice = asyncHandler(async (req, res) => {
+    const { token_id, listPrice } = req.body;
 
-module.exports = { listNft, getAllListedNfts, unlistNft };
+    // Check if the NFT is already listed in the ListNft table
+    const existingListNft = await ListNft.findOne({ token_id });
+
+    if (!existingListNft) {
+        res.status(404);
+        throw new Error("NFT is not Listed!");
+
+    }
+    // If the NFT is already listed, update the price with the new value
+    existingListNft.price = listPrice;
+    await existingListNft.save();
+
+    // Return a success response
+    res.status(200).json({ success: true, message: 'NFT price updated successfully' });
+}
+);
+
+
+module.exports = { listNft, getAllListedNfts, unlistNft, updateNftPrice };
