@@ -29,7 +29,7 @@ app.use('/api', list_Route),
 
 const Start = async () => {
     try {
-        await connectDB(process.env.MANGODB_URL);
+        await connectDB(process.env.MANGODB_URL_2);
         app.listen(PORT, () => {
             console.log(`Running on port ${PORT}`);
         });
