@@ -8,7 +8,7 @@ const asyncHandler = require("express-async-handler");
 const listNft = asyncHandler(
     async (req, res) => {
 
-        const { tokenId, listPrice } = req.body;
+        const { tokenId, listPrice, useraddress } = req.body;
 
         // Find the NFT record that matches the nftId
         const nftRecord = await Nft.findOne({ tokenId });
@@ -23,7 +23,8 @@ const listNft = asyncHandler(
         const newListNft = new ListNft({
             nft_id: nftRecord.id, // Associate the Nft object ID with the listnft record
             token_id: nftRecord.tokenId,
-            price: listPrice // Copy the token_id from the Nft record (if needed)
+            price: listPrice, // Copy the token_id from the Nft record (if needed)
+            userAddress: useraddress
         });
 
         // Save the newListNft record to the database
@@ -80,6 +81,7 @@ const updateNftPrice = asyncHandler(async (req, res) => {
         throw new Error("NFT is not Listed!");
 
     }
+    console.log("exsisting", existingListNft);
     // If the NFT is already listed, update the price with the new value
     existingListNft.price = listPrice;
     await existingListNft.save();
@@ -90,4 +92,30 @@ const updateNftPrice = asyncHandler(async (req, res) => {
 );
 
 
-module.exports = { listNft, getAllListedNfts, unlistNft, updateNftPrice };
+const getNftsFiltered = asyncHandler(async (req, res) => {
+    const userAddress = req.query; // Assuming you are passing the user address as a parameter
+
+    // Fetch all the listed NFTs along with the NFT details
+    const Nfts = await ListNft.aggregate([
+        {
+            $lookup: {
+                from: "nfts",
+                localField: "nft_id",
+                foreignField: "_id",
+                as: "nft",
+            },
+        },
+    ]);
+    const lowercasedUserAddress = userAddress?.userAddress.toLowerCase();
+
+    // Add the "owned" field to each NFT based on the userAddress
+    const NftsWithOwnership = Nfts.map((nft) => ({
+
+        ...nft,
+        owned: nft?.userAddress?.toLowerCase() === lowercasedUserAddress, // Check if the NFT is owned by the user
+    }));
+
+    res.status(200).json(NftsWithOwnership);
+});
+
+module.exports = { listNft, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered };

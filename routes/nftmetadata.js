@@ -5,4 +5,5 @@ const { addNft, getAllNft, checkNftInDB } = require("./../controllers/nftmetadat
 router.route("/addnft").post(addNft);
 router.route("/getAllNft").get(getAllNft);
 router.route("/checkNft").post(checkNftInDB);
+
 module.exports = router;

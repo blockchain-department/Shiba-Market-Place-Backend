@@ -12,6 +12,10 @@ const productSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: [true, "Please enter nftPrice"]
+    },
+    userAddress: {
+        type: String,
+        required: [true, "Please enter userAddress"]
     }
 })
 
