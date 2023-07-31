@@ -1,11 +1,11 @@
 
-const ListNft = require('../modles/listnft'); // Import the ListNft model
+const ListNft = require("../modles/listnft"); // Import the ListNft model
 const Nft = require("../modles/nftmetadata");
 const dotenv = require('dotenv');
 const asyncHandler = require("express-async-handler");
 
 // Function to list an NFT
-const listNft = asyncHandler(
+const NFTListing = asyncHandler(
     async (req, res) => {
 
         const { tokenId, listPrice, useraddress } = req.body;
@@ -118,4 +118,4 @@ const getNftsFiltered = asyncHandler(async (req, res) => {
     res.status(200).json(NftsWithOwnership);
 });
 
-module.exports = { listNft, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered };
+module.exports = { NFTListing, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered };
