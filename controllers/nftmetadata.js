@@ -28,6 +28,44 @@ const addNft = asyncHandler(async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+const addNfts = asyncHandler(async (req, res) => {
+    try {
+        const nftsData = req.body;
+
+        if (!Array.isArray(nftsData)) {
+            res.status(400);
+            throw new Error("Data should be an array of NFTs!");
+        }
+
+        const createdNfts = [];
+
+        for (const nftData of nftsData) {
+            const { tokenId, name, image, attributes } = nftData;
+
+            if (!tokenId || !name || !image) {
+                res.status(400);
+                throw new Error("All fields are mandatory for each NFT!");
+            }
+
+            // Perform any additional validation checks on attributes, etc. if required
+
+            const createNft = await Nft.create({
+                tokenId,
+                name,
+                image,
+                attributes
+            });
+
+            createdNfts.push(createNft);
+        }
+
+        res.status(201).json({ nfts: createdNfts });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 const getAllNft = asyncHandler(async (req, res) => {
     const { tokenId, company, name, featured, sort, select, page, limit } = req.query;
     const queryObject = {};
@@ -89,4 +127,4 @@ const checkNftInDB = asyncHandler(async (req, res) => {
 });
 
 
-module.exports = { addNft, getAllNft, checkNftInDB };
+module.exports = { addNft,addNfts, getAllNft, checkNftInDB };
