@@ -118,14 +118,60 @@ const getNftsFiltered = asyncHandler(async (req, res) => {
     res.status(200).json(NftsWithOwnership);
 });
 
+// const paginatedNFTs = asyncHandler(async (req, res) => {
+//     const userAddress = req.query.userAddress; // Assuming you are passing the user address as a parameter
+//     const rarity = req.query.rarity;
+//     const page = parseInt(req.query.page) || 1; // Get the requested page number, default to 1 if not provided
+//     const perPage = parseInt(req.query.perPage)||12; // Number of items per page
+
+
+//     try {
+//         // Fetch all the listed NFTs along with the NFT details
+//         const Nfts = await ListNft.aggregate([
+//             {
+//                 $lookup: {
+//                     from: "nfts",
+//                     localField: "nft_id",
+//                     foreignField: "_id",
+//                     as: "nft",
+//                 },
+//             },
+//         ]);
+
+//         const lowercasedUserAddress = userAddress?.toLowerCase();
+
+//         // Add the "owned" field to each NFT based on the userAddress
+//         const NftsWithOwnership = Nfts.map((nft) => ({
+//             ...nft,
+//             owned: nft?.userAddress?.toLowerCase() === lowercasedUserAddress, // Check if the NFT is owned by the user
+
+//         }));
+
+//         // Calculate the start and end indexes for the current page
+//         const startIndex = (page - 1) * perPage;
+//         const endIndex = page * perPage;
+
+//         // Get the NFTs for the current page
+//         const nftsForPage = NftsWithOwnership.slice(startIndex, endIndex);
+
+//         res.status(200).json({
+//             currentPage: page,
+//             totalPages: Math.ceil(NftsWithOwnership.length / perPage),
+//             nfts: nftsForPage,
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: "An error occurred while fetching NFTs." });
+//     }
+// });
 const paginatedNFTs = asyncHandler(async (req, res) => {
-    const userAddress = req.query.userAddress; // Assuming you are passing the user address as a parameter
-    const page = parseInt(req.query.page) || 1; // Get the requested page number, default to 1 if not provided
-    const perPage = parseInt(req.query.perPage)||12; // Number of items per page
+    const userAddress = req.query.userAddress;
+    const rarities = req.query.rarities ? req.query.rarities.split(',') : [];
+    const positions = req.query.positions ? req.query.positions.split(',') : [];
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.perPage) || 12;
 
     try {
-        // Fetch all the listed NFTs along with the NFT details
-        const Nfts = await ListNft.aggregate([
+        let aggregationPipeline = [
             {
                 $lookup: {
                     from: "nfts",
@@ -134,31 +180,59 @@ const paginatedNFTs = asyncHandler(async (req, res) => {
                     as: "nft",
                 },
             },
-        ]);
+        ];
+
+        if (rarities.length > 0) {
+            aggregationPipeline.push({
+                $match: {
+                    "nft.0.attributes.value": { $in: rarities.map(rarity => rarity.toLowerCase()) },
+                },
+            });
+        }
+
+        if (positions.length > 0) {
+            aggregationPipeline.push({
+                $match: {
+                    "nft.0.attributes.trait_type": "Position",
+                    "nft.0.attributes.value": { $in: positions },
+                },
+            });
+        }
+
+        const Nfts = await ListNft.aggregate(aggregationPipeline);
 
         const lowercasedUserAddress = userAddress?.toLowerCase();
 
-        // Add the "owned" field to each NFT based on the userAddress
         const NftsWithOwnership = Nfts.map((nft) => ({
-            ...nft,
-            owned: nft?.userAddress?.toLowerCase() === lowercasedUserAddress, // Check if the NFT is owned by the user
+            _id: nft._id,
+            nft_id: nft.nft_id,
+            token_id: nft.token_id,
+            price: nft.price,
+            userAddress: nft.userAddress,
+            __v: nft.__v,
+            nft: nft.nft[0],
+            owned: nft?.userAddress?.toLowerCase() === lowercasedUserAddress,
         }));
 
-        // Calculate the start and end indexes for the current page
+        const totalNFTs = NftsWithOwnership.length;
+        const totalPages = Math.ceil(totalNFTs / perPage);
+
         const startIndex = (page - 1) * perPage;
         const endIndex = page * perPage;
-
-        // Get the NFTs for the current page
         const nftsForPage = NftsWithOwnership.slice(startIndex, endIndex);
 
-        res.status(200).json({
+        const response = {
             currentPage: page,
-            totalPages: Math.ceil(NftsWithOwnership.length / perPage),
+            totalPages: totalPages,
+            totalNFTs: totalNFTs,
             nfts: nftsForPage,
-        });
+        };
+
+        res.status(200).json(response);
     } catch (error) {
         res.status(500).json({ message: "An error occurred while fetching NFTs." });
     }
 });
+
 
 module.exports = { NFTListing, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered,paginatedNFTs };
