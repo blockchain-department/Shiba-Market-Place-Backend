@@ -6,8 +6,10 @@ const productSchema = new mongoose.Schema({
         require: true,
     },
     token_id: {
-        type: String,
-        required: [true, "Please enter tokenid"]
+        type: Number,
+        required: [true, "Please enter tokenid"],
+        index: true,
+        unique: true
     },
     price: {
         type: Number,

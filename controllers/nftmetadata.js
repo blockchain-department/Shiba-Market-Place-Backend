@@ -1,8 +1,12 @@
 const Nft = require("../modles/nftmetadata");
 const dotenv = require('dotenv');
 const asyncHandler = require("express-async-handler");
-
+const NFTMetaData = require('../nftscript/script');
+const { Web3 } = require('web3');
 dotenv.config();
+const contractAbi = require('../ShibaFootballNFTAbi.json');
+const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER));
+const contract = new web3.eth.Contract(contractAbi, process.env.CONTRACT);
 const addNft = asyncHandler(async (req, res) => {
     try {
         //const { name, price, feature, rating, company } = req.body;
@@ -30,42 +34,50 @@ const addNft = asyncHandler(async (req, res) => {
 });
 const addNfts = asyncHandler(async (req, res) => {
     try {
-        const nftsData = req.body;
-
-        if (!Array.isArray(nftsData)) {
-            res.status(400);
-            throw new Error("Data should be an array of NFTs!");
-        }
-
-        const createdNfts = [];
-
-        for (const nftData of nftsData) {
-            const { tokenId, name, image, attributes } = nftData;
-
-            if (!tokenId || !name || !image) {
-                res.status(400);
-                throw new Error("All fields are mandatory for each NFT!");
+        var owner = undefined;
+        var _nftIDs = [];
+        const tx = req.body;
+        const result = await web3.eth.getTransactionReceipt(tx.tx);
+        for (const log of result.logs) {
+            const eventSignature = web3.eth.abi.encodeEventSignature('Transfer(address,address,uint256)')
+            if (eventSignature == log.topics[0]) {
+                var eventData = web3.eth.abi.decodeLog(
+                    contract._jsonInterface.find(o => o.name == 'Transfer' && o.type == 'event').inputs,
+                    log.data,
+                    log.topics.slice(1)
+                );
+                owner = eventData[1];
+                _nftIDs.push(eventData[2].toString());
             }
-
-            // Perform any additional validation checks on attributes, etc. if required
-
-            const createNft = await Nft.create({
-                tokenId,
-                name,
-                image,
-                attributes
-            });
-
-            createdNfts.push(createNft);
+        };
+        try{
+            var NFTs = [];
+            for (const tokenId of _nftIDs) {
+                const metaDataNFT = NFTMetaData();
+                const name = metaDataNFT.name;
+                const image = metaDataNFT.image;
+                const attributes = metaDataNFT.attributes;
+                NFTs.push({
+                    tokenId,
+                    owner,
+                    name,
+                    image,
+                    attributes
+                });
+            }
+            if(NFTs.length > 0){
+                Nft.insertMany(NFTs, { ordered: false, throwOnValidationError: true }).catch(err => {});
+            }
+        } catch (error) {
+          //console.error(error);
         }
-
-        res.status(201).json({ nfts: createdNfts });
+        var results = await Nft.find().where('tokenId').in(_nftIDs).sort({ tokenId: 'asc' }).exec();
+        
+        res.status(201).json({ nfts: results });
     } catch (error) {
-        console.log(error.message);
         res.status(500).json({ message: error.message });
     }
 });
-
 const getAllNft = asyncHandler(async (req, res) => {
     const { tokenId, company, name, featured, sort, select, page, limit } = req.query;
     const queryObject = {};
@@ -101,7 +113,6 @@ const getAllNft = asyncHandler(async (req, res) => {
 
     res.status(200).json(data);
 });
-
 const checkNftInDB = asyncHandler(async (req, res) => {
     const { name, power, position } = req.body;
 
@@ -125,6 +136,4 @@ const checkNftInDB = asyncHandler(async (req, res) => {
         res.status(200).json({ exists: false });
     }
 });
-
-
-module.exports = { addNft,addNfts, getAllNft, checkNftInDB };
+module.exports = { addNft, addNfts, getAllNft, checkNftInDB };

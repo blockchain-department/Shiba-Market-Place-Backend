@@ -4,7 +4,14 @@ const Nft = require("../modles/nftmetadata");
 const dotenv = require('dotenv');
 const asyncHandler = require("express-async-handler");
 
-// Function to list an NFT
+const getMetaData = asyncHandler(
+    async (req, res) => {
+        const { data } = req.body;
+        var metaDatas = await Nft.find().where('tokenId').in(data).sort({ tokenId: 'asc' }).exec();
+        res.status(201).json({ success: true, result: metaDatas });
+    }
+);
+
 const NFTListing = asyncHandler(
     async (req, res) => {
 
@@ -49,7 +56,6 @@ const getAllListedNfts = asyncHandler(async (req, res) => {
     ]);
     res.status(200).json(Nfts);
 });
-
 const unlistNft = asyncHandler(async (req, res) => {
     try {
         const { token_id } = req.body;
@@ -69,7 +75,6 @@ const unlistNft = asyncHandler(async (req, res) => {
         res.status(500).send({ message: error.message });
     }
 });
-
 const updateNftPrice = asyncHandler(async (req, res) => {
     const { token_id, listPrice } = req.body;
 
@@ -90,8 +95,6 @@ const updateNftPrice = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'NFT price updated successfully' });
 }
 );
-
-
 const getNftsFiltered = asyncHandler(async (req, res) => {
    // const userAddress = req.query; // Assuming you are passing the user address as a parameter
 
@@ -117,15 +120,13 @@ const getNftsFiltered = asyncHandler(async (req, res) => {
 
     res.status(200).json(Nfts);
 });
-
 const paginatedNFTs = asyncHandler(async (req, res) => {
     const userAddress = req.query.userAddress;
     const rarities = req.query.rarities ? req.query.rarities.split(',') : [];
     const positions = req.query.positions ? req.query.positions.split(',') : [];
-    const sorting = req.query.sorting || "newest"; // Default to "newest" if sorting not provided
+    const sorting = req.query.sorting || "default"; // Default to "newest" if sorting not provided
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.perPage) || 12;
-
     try {
         let aggregationPipeline = [
             {
@@ -210,77 +211,4 @@ const paginatedNFTs = asyncHandler(async (req, res) => {
         res.status(500).json({ message: `An error occurred while fetching NFTs${error}` });
     }
 });
-
-// const paginatedNFTs = asyncHandler(async (req, res) => {
-//     const userAddress = req.query.userAddress;
-//     const rarities = req.query.rarities ? req.query.rarities.split(',') : [];
-//     const positions = req.query.positions ? req.query.positions.split(',') : [];
-//     const page = parseInt(req.query.page) || 1;
-//     const perPage = parseInt(req.query.perPage) || 12;
-
-//     try {
-//         let aggregationPipeline = [
-//             {
-//                 $lookup: {
-//                     from: "nfts",
-//                     localField: "nft_id",
-//                     foreignField: "_id",
-//                     as: "nft",
-//                 },
-//             },
-//         ];
-
-//         if (rarities.length > 0) {
-//             aggregationPipeline.push({
-//                 $match: {
-//                     "nft.0.attributes.value": { $in: rarities.map(rarity => rarity.toLowerCase()) },
-//                 },
-//             });
-//         }
-
-//         if (positions.length > 0) {
-//             aggregationPipeline.push({
-//                 $match: {
-//                     "nft.0.attributes.trait_type": "Position",
-//                     "nft.0.attributes.value": { $in: positions },
-//                 },
-//             });
-//         }
-
-//         const Nfts = await ListNft.aggregate(aggregationPipeline);
-
-//         const lowercasedUserAddress = userAddress?.toLowerCase();
-
-//         const NftsWithOwnership = Nfts.map((nft) => ({
-//             _id: nft._id,
-//             nft_id: nft.nft_id,
-//             token_id: nft.token_id,
-//             price: nft.price,
-//             userAddress: nft.userAddress,
-//             __v: nft.__v,
-//             nft: nft.nft[0],
-//             owned: nft?.userAddress?.toLowerCase() === lowercasedUserAddress,
-//         }));
-
-//         const totalNFTs = NftsWithOwnership.length;
-//         const totalPages = Math.ceil(totalNFTs / perPage);
-
-//         const startIndex = (page - 1) * perPage;
-//         const endIndex = page * perPage;
-//         const nftsForPage = NftsWithOwnership.slice(startIndex, endIndex);
-
-//         const response = {
-//             currentPage: page,
-//             totalPages: totalPages,
-//             totalNFTs: totalNFTs,
-//             nfts: nftsForPage,
-//         };
-
-//         res.status(200).json(response);
-//     } catch (error) {
-//         res.status(500).json({ message: "An error occurred while fetching NFTs." });
-//     }
-// });
-
-
-module.exports = { NFTListing, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered,paginatedNFTs };
+module.exports = { NFTListing, getAllListedNfts, unlistNft, updateNftPrice, getNftsFiltered,paginatedNFTs, getMetaData };

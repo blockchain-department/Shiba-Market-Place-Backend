@@ -2,8 +2,14 @@ const mongoose = require("mongoose");
 
 const nftmetadataSchema = new mongoose.Schema({
     tokenId: {
+        type: Number,
+        required: true,
+        index: true,
+        unique: true
+    },
+    owner: {
         type: String,
-        required: true
+        required: true,
     },
     name: {
         type: String,
@@ -29,5 +35,4 @@ const projection = {
 // Apply the projection to the schema
 nftmetadataSchema.set("toJSON", { virtuals: true, versionKey: false, transform: (_, ret) => { delete ret._id; return ret; } });
 nftmetadataSchema.set("toObject", { virtuals: true, versionKey: false, transform: (_, ret) => { delete ret._id; return ret; } });
-
 module.exports = mongoose.model("Nft", nftmetadataSchema);
